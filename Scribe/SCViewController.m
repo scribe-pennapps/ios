@@ -292,6 +292,7 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
         
         CVReturn lock = CVPixelBufferLockBaseAddress(pixelBuffer, 0);
         NSMutableArray *circles = [[NSMutableArray alloc] init];
+        NSMutableArray *origins = [[NSMutableArray alloc] init];
         if (lock == kCVReturnSuccess) {
             unsigned long w = 0;
             unsigned long h = 0;
@@ -389,8 +390,9 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
                                 UIView *view = [[UIView alloc] initWithFrame:CGRectMake(((float)horizontalStartLimit/w) * self.view.frame.size.width, ((float)verticalStartLimit/h) * self.view.frame.size.height, ((float)(horizontalEndLimit - horizontalStartLimit)/w) *  self.view.frame.size.width, ((float)(verticalEndLimit - verticalStartLimit)/h) * self.view.frame.size.height)];
                                 view.backgroundColor = [UIColor colorWithWhite:.2 alpha:.5];
                                 [circles addObject:view];
-                                
                                 [circles addObject:circle];
+                                
+                                [origins addObject:[NSValue valueWithCGPoint:circle.frame.origin]];
                                 x = 0; y += 26;
                             }
                             
@@ -411,12 +413,32 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
             
             UIGraphicsEndImageContext();
             
-            UIImageView *imageView = [[UIImageView alloc] initWithFrame:self.view.bounds];
-            imageView.image = img;
-            [self.view addSubview:imageView];
+//            UIImageView *imageView = [[UIImageView alloc] initWithFrame:self.view.bounds];
+//            imageView.image = img;
+//            [self.view addSubview:imageView];
             for (UIView *circle in circles) {
-                [self.view addSubview:circle];
+//                [self.view addSubview:circle];
             }
+            float previousY = 0;
+            for (int i = 0; i < origins.count; i++) {
+                
+                CGPoint current = [origins[i] CGPointValue];
+                if (current.y - previousY > 40) {
+                    UIView *line = [[UIView alloc] initWithFrame:CGRectMake(10, current.y, 300, 1)];
+                    line.backgroundColor = [UIColor redColor];
+                    [self.view addSubview:line];
+                }
+            }
+            CGPoint first = [origins[0] CGPointValue];
+            CGPoint last = [origins[origins.count - 1] CGPointValue];
+            UIView *firstVerticalLine = [[UIView alloc] initWithFrame:CGRectMake(0, first.y, 1, last.y - first.y)];
+            firstVerticalLine.backgroundColor = [UIColor redColor];
+            [self.view addSubview:firstVerticalLine];
+            
+            UIView *lastVerticalLine = [[UIView alloc] initWithFrame:CGRectMake(300, first.y, 1, last.y - first.y)];
+            lastVerticalLine.backgroundColor = [UIColor redColor];
+            [self.view addSubview:lastVerticalLine];
+            
             UIImageWriteToSavedPhotosAlbum(img, nil, nil, nil);
          }
 
