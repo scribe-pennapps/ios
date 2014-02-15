@@ -263,6 +263,7 @@
             UIGraphicsBeginImageContext(CGSizeMake(w, h));
             CGContextRef c = UIGraphicsGetCurrentContext();
             unsigned char* data = CGBitmapContextGetData(c);
+            NSLog(@"bytesPerPixel:%lu", bytesPerPixel);
             if (data != NULL) {
                 // iterate over the pixels in cropRect
 //                for(int y = cropRect.origin.y, yDest = 0; y<CGRectGetMaxY(cropRect); y++, yDest++) {
@@ -277,11 +278,21 @@
                 
                 for (int y = 0; y < h; y++) {
                     for (int x = 0; x < w; x++) {
-                        <#statements#>
+                        unsigned long offset = bytesPerPixel*((w*y)+x);
+//                        NSLog(@"r:%d g:%d b:%d a:%f", buffer[offset], buffer[offset+1], buffer[offset+2], buffer[offset+3]/255.0);
+                        
+                        if (arc4random() % 10 == 0) {
+                            for (int i = 0; i < bytesPerPixel; i++) {
+                                data[offset + i]   = 0;
+                            }
+                        }
                     }
                 }
             }
             UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
+            UIImageView *imageView = [[UIImageView alloc] initWithFrame:self.view.bounds];
+            imageView.image = img;
+            [self.view addSubview:imageView];
             UIGraphicsEndImageContext();
         }
     }
