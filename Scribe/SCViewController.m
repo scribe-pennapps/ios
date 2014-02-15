@@ -291,6 +291,8 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
         
         
         CVReturn lock = CVPixelBufferLockBaseAddress(pixelBuffer, 0);
+        NSMutableArray *circles = [[NSMutableArray alloc] init];
+        NSMutableArray *origins = [[NSMutableArray alloc] init];
         if (lock == kCVReturnSuccess) {
             unsigned long w = 0;
             unsigned long h = 0;
@@ -302,6 +304,7 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
             w = CVPixelBufferGetHeight(pixelBuffer);
             r = CVPixelBufferGetBytesPerRow(pixelBuffer);
             bytesPerPixel = r/h;
+            //            buffer = CVPixelBufferGetBaseAddress(pixelBuffer);
             buffer = [self rotateBuffer:sampleBuffer];
             UIGraphicsBeginImageContext(CGSizeMake(w, h));
             CGContextRef c = UIGraphicsGetCurrentContext();
@@ -309,27 +312,203 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
             NSLog(@"bytesPerPixel:%lu", bytesPerPixel);
             if (data != NULL) {
                 
+                //                for (int y = 0; y < h; y++) {
+                //                    for (int x = 0; x < w; x++) {
+                //                        unsigned long offset = bytesPerPixel*((w*y)+x);
+                ////                        NSLog(@"r:%d g:%d b:%d a:%f", buffer[offset], buffer[offset+1], buffer[offset+2], buffer[offset+3]/255.0);
+                ////                        float average = (buffer[offset] + buffer[offset+1] + buffer[offset+2])/3;
+                //                        BOOL testPercent = (buffer[offset] > BLACK_THRESHOLD &&  buffer[offset+1] > BLACK_THRESHOLD &&  buffer[offset+2] > BLACK_THRESHOLD);
+                //                        offset +=2;
+                //                        if (!testPercent/* || (abs(1 - buffer[offset]/average) < PERCENT_ERROR &&  abs(1 - buffer[offset + 1]/average) < PERCENT_ERROR &&  abs(1 - buffer[offset + 2]/average) < PERCENT_ERROR)*/) {
+                //                            //TODO:hack
+                //                            if (y > h/2) {
+                //                                data[offset] = 170;
+                //                                data[offset + 1] = 220;
+                //                                data[offset + 2] = 0;
+                //                                data[offset + 3] = 255;
+                //                            }
+                //                            else {
+                //                                data[offset] = 52;
+                //                                data[offset + 1] = 170;
+                //                                data[offset + 2] = 220;
+                //                                data[offset + 3] = 255;
+                //                            }
+                //
+                //                        }
+                //                    }
+                //                }
                 for (int y = 0; y < h; y++) {
+//                    BOOL firstVerticalFound = NO;
+//                    BOOL spaceAfterVertical = NO;
                     for (int x = 0; x < w; x++) {
                         unsigned long offset = bytesPerPixel*((w*y)+x);
-                        offset +=2;
-                        data[offset] = buffer[offset];
-                        data[offset + 1] = buffer[offset + 1];
-                        data[offset + 2] = buffer[offset + 2];
-                        data[offset + 3] = buffer[offset + 3];
-                    }
-                }
+                        if (buffer[offset] < BLACK_THRESHOLD &&  buffer[offset+1] < BLACK_THRESHOLD &&  buffer[offset+2] < BLACK_THRESHOLD) {
+                            //TODO:hack
+//                            firstVerticalFound = YES;
+                            //check if corner
+                            int counter = 0;
+                            //weighted horizontal
+                            //                            NSLog(@"%d, %lu", x + 1500, w-1);
+                            int horizontalStartLimit = MAX(x - 2200, 0);
+                            int horizontalEndLimit = MIN(x + 1300, w - 400);
+                            for (int k = y; k < y + 10; k++) {
+                                for (int j = horizontalStartLimit; j < horizontalEndLimit; j++) {
+                                    unsigned long cOffset = bytesPerPixel*((w*k)+j);
+                                    if ((buffer[cOffset] < BLACK_THRESHOLD &&  buffer[cOffset+1] < BLACK_THRESHOLD &&  buffer[cOffset+2] < BLACK_THRESHOLD)) {
+                                        counter += 1;
+                                    }
+                                    
+                                }
+                            }
+                            
+                            int verticalStartLimit = MAX(y - 11, 0);
+                            int verticalEndLimit = MIN(y + 11, h - 4);
+                            for (int k = verticalStartLimit; k < verticalEndLimit; k++) {
+                                for (int j = x + 1; j < x + 11; j++) {
+                                    unsigned long cOffset = bytesPerPixel*((w*k)+j);
+                                    if ((buffer[cOffset] < BLACK_THRESHOLD &&  buffer[cOffset+1] < BLACK_THRESHOLD &&  buffer[cOffset+2] < BLACK_THRESHOLD)) {
+                                        counter++;
+                                    }
+                                    
+                                }
+                            }
+                            float percentage = .01;
+                            
+                            float finalPercentage = counter/((float)(abs((horizontalEndLimit - horizontalStartLimit) *1)* (verticalEndLimit - verticalStartLimit)));
+                            if (finalPercentage > percentage && finalPercentage < 8) {
+                                if (circles.count == 0) {
+                                    finalPercentage *= 2;
+                                }
+                                UIView *circle = [[UIView alloc] initWithFrame:CGRectMake(((float)x/w) * self.view.frame.size.width, ((float)y/h) * self.view.frame.size.height, 500 * finalPercentage, 500 * finalPercentage)];
+                                circle.layer.cornerRadius = circle.frame.size.width/2;
+                                circle.backgroundColor = [UIColor colorWithRed:52/255.0 green:170/255.0 blue:220/255.0 alpha:1];
+                                if (circles.count == 0) {
+                                    circle.backgroundColor = [UIColor redColor];
+                                }
+                                UIView *view = [[UIView alloc] initWithFrame:CGRectMake(((float)horizontalStartLimit/w) * self.view.frame.size.width, ((float)verticalStartLimit/h) * self.view.frame.size.height, ((float)(horizontalEndLimit - horizontalStartLimit)/w) *  self.view.frame.size.width, ((float)(verticalEndLimit - verticalStartLimit)/h) * self.view.frame.size.height)];
+                                view.backgroundColor = [UIColor colorWithWhite:.2 alpha:.5];
+//                                [circles addObject:view];
+//                                [circles addObject:circle];
+                                
+                                [origins addObject:[NSValue valueWithCGPoint:circle.frame.origin]];
+                                x = 0; y += 26;
+                            }
+                            
+                            
+                            offset +=2;
+                            data[offset] = 52;
+                            data[offset + 1] = 170;
+                            data[offset + 2] = 220;
+                            data[offset + 3] = 255;
+                        }
 
-                UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
+                    }
+                    
+                }
                 
-                UIGraphicsEndImageContext();
-                UIImageWriteToSavedPhotosAlbum(img, self, @selector(image:finishedSavingWithError:contextInfo:), nil);
                 
             }
+            UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
             
-
-         }
-
+            UIGraphicsEndImageContext();
+//                UIImageWriteToSavedPhotosAlbum(img, self, @selector(image:finishedSavingWithError:contextInfo:), nil);
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                for (UIView *circle in circles) {
+                    [self.view addSubview:circle];
+                }
+                float previousX, previousY = 0;
+                CGPoint first = [origins[0] CGPointValue];
+                CGPoint last = [origins[origins.count - 1] CGPointValue];
+                UIView *pageView = [[UIView alloc] initWithFrame:CGRectMake(10, first.y, 300, last.y - first.y)];
+                pageView.layer.borderColor = [UIColor redColor].CGColor;
+                pageView.layer.borderWidth = 2;
+                [self.view addSubview:pageView];
+                NSMutableDictionary *dom = [[NSMutableDictionary alloc] init];
+                for (int i = 1; i < origins.count-1; i++) {
+                    
+                    CGPoint current = [origins[i] CGPointValue];
+                    if (current.y - first.y < 10 || last.y - current.y < 15) {
+                        continue;
+                    }
+                    if (current.y - previousY > 55) {
+                        UIView *line = [[UIView alloc] initWithFrame:CGRectMake(10, current.y, 300, 2)];
+                        line.backgroundColor = [UIColor redColor];
+                        [self.view addSubview:line];
+                        
+                        //search for elements within
+                        //CGRectMake(((float)x/w) * self.view.frame.size.width, ((float)y/h) * self.view.frame.size.height, 500 * finalPercentage, 500 * finalPercentage)
+                        int inset = 5;
+                        float miny = (previousY/self.view.frame.size.height) * h + 4 * inset;
+                        float maxy = (current.y/self.view.frame.size.height) * h -  4 * inset;
+                        float minx = (previousX/self.view.frame.size.width) * w +  4 * inset;
+                        float maxx = (current.x/self.view.frame.size.width) * w -  4 * inset;
+                        for (int y = miny; y < maxy; y++) {
+                            for (int x = minx; x < maxx; x++) {
+                                unsigned long offset = bytesPerPixel*((w*y)+x);
+                                if (buffer[offset] < BLACK_THRESHOLD &&  buffer[offset+1] < BLACK_THRESHOLD &&  buffer[offset+2] < BLACK_THRESHOLD) {
+                                    int counter = 0;
+                                    //weighted horizontal
+                                    int horizontalStartLimit = MAX(x , minx);
+                                    int horizontalEndLimit = MIN(x + 60, maxx - 400);
+                                    for (int k = y; k < y + 10; k++) {
+                                        for (int j = horizontalStartLimit; j < horizontalEndLimit; j++) {
+                                            unsigned long cOffset = bytesPerPixel*((w*k)+j);
+                                            if ((buffer[cOffset] < BLACK_THRESHOLD &&  buffer[cOffset+1] < BLACK_THRESHOLD &&  buffer[cOffset+2] < BLACK_THRESHOLD)) {
+                                                counter += 1;
+                                            }
+                                            
+                                        }
+                                    }
+                                    
+                                    int verticalStartLimit = MAX(y, miny);
+                                    int verticalEndLimit = MIN(y + 20, maxy - 4);
+                                    for (int k = verticalStartLimit; k < verticalEndLimit; k++) {
+                                        for (int j = x + 1; j < x + 11; j++) {
+                                            unsigned long cOffset = bytesPerPixel*((w*k)+j);
+                                            if ((buffer[cOffset] < BLACK_THRESHOLD &&  buffer[cOffset+1] < BLACK_THRESHOLD &&  buffer[cOffset+2] < BLACK_THRESHOLD)) {
+                                                counter++;
+                                            }
+                                            
+                                        }
+                                    }
+                                    float percentage = .001;
+                                    
+                                    float finalPercentage = counter/((float)(abs((horizontalEndLimit - horizontalStartLimit) *1)* (verticalEndLimit - verticalStartLimit)));
+                                    NSLog(@"Percentage:%f", finalPercentage);
+                                    if (finalPercentage > percentage && finalPercentage < 8) {
+                                        if (circles.count == 0) {
+                                            finalPercentage *= 2;
+                                        }
+                                        UIView *circle = [[UIView alloc] initWithFrame:CGRectMake(((float)x/w) * self.view.frame.size.width, ((float)y/h) * self.view.frame.size.height, 500 * finalPercentage, 500 * finalPercentage)];
+                                        circle.layer.cornerRadius = circle.frame.size.width/2;
+                                        circle.backgroundColor = [UIColor colorWithRed:52/255.0 green:170/255.0 blue:220/255.0 alpha:1];
+                                        if (circles.count == 0) {
+                                            circle.backgroundColor = [UIColor greenColor];
+                                        }
+                                        UIView *view = [[UIView alloc] initWithFrame:CGRectMake(((float)horizontalStartLimit/w) * self.view.frame.size.width, ((float)verticalStartLimit/h) * self.view.frame.size.height, ((float)(horizontalEndLimit - horizontalStartLimit)/w) *  self.view.frame.size.width, ((float)(verticalEndLimit - verticalStartLimit)/h) * self.view.frame.size.height)];
+                                        view.backgroundColor = [UIColor colorWithWhite:.2 alpha:.5];
+                                        //                                [circles addObject:view];
+                                        //                                [circles addObject:circle];
+                                        [self.view addSubview:circle];
+                                        [self.view addSubview:view];
+                                        [origins addObject:[NSValue valueWithCGPoint:circle.frame.origin]];
+                                        x = 0; y += 26;
+                                    }
+                                }
+                                
+                            }
+                        }
+                        
+                        previousX = current.x;
+                        previousY = current.y;
+                    }
+                    
+                }
+                
+            });
+            
+        }
+        
         
     }
     
@@ -337,11 +516,11 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
         if (self.videoType == 0) self.videoType = CMFormatDescriptionGetMediaSubType( formatDescription );
         CVPixelBufferRef pixelBuffer = (CVPixelBufferRef)CMSampleBufferGetImageBuffer(sampleBuffer);
         CIImage *image = [CIImage imageWithCVPixelBuffer:pixelBuffer];
-//        if (hasOverlay && NO) {
-//            CIFilter *filter = [CIFilter filterWithName:@"CIGaussianBlur"];
-//            [filter setValue:image forKey:kCIInputImageKey]; [filter setValue:@22.0f forKey:@"inputRadius"];
-//            image = [filter valueForKey:kCIOutputImageKey];
-//        }
+        //        if (hasOverlay && NO) {
+        //            CIFilter *filter = [CIFilter filterWithName:@"CIGaussianBlur"];
+        //            [filter setValue:image forKey:kCIInputImageKey]; [filter setValue:@22.0f forKey:@"inputRadius"];
+        //            image = [filter valueForKey:kCIOutputImageKey];
+        //        }
         CGAffineTransform transform = CGAffineTransformMakeRotation(-M_PI_2);
         image = [image imageByApplyingTransform:transform];
         
@@ -351,8 +530,9 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
             [self.context presentRenderbuffer:GL_RENDERBUFFER];
         });
     }
-
+    
 }
+
 
 - (void)image:(UIImage *)image finishedSavingWithError:(NSError *)imageError contextInfo:(void *)contextInfo{
     ;
