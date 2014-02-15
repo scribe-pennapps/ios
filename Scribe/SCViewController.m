@@ -16,6 +16,7 @@
 #define kCameraViewOffset 60
 #define KSizeOfSquare 75.0f
 
+static inline double radians (double degrees) {return degrees * M_PI/180;}
 
 @interface SCViewController ()
 @property (readwrite) CMVideoCodecType videoType;
@@ -86,6 +87,10 @@
     svc = [self.storyboard instantiateViewControllerWithIdentifier:@"Sites"];
     svc.delegate = self;
     [_overlayView addSubview:svc.view];
+    
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, .25 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        [self goToCamera];
+    });
 }
 
 - (void)takePicture {
@@ -278,22 +283,35 @@
                 
                 for (int y = 0; y < h; y++) {
                     for (int x = 0; x < w; x++) {
-                        unsigned long offset = bytesPerPixel*((w*y)+x);
+                        unsigned long offset = bytesPerPixel*((w*y)+x) + 2;
 //                        NSLog(@"r:%d g:%d b:%d a:%f", buffer[offset], buffer[offset+1], buffer[offset+2], buffer[offset+3]/255.0);
-                        
-                        if (arc4random() % 10 == 0) {
+                        int rand = arc4random() % 3;
+                        if (rand != 0) {
+                            data[offset] = 52;
+                            data[offset + 1] = 170;
+                            data[offset + 2] = 220;
+                            data[offset + 3] = 255;
+//                            for (int i = 0; i < bytesPerPixel*1000; i++) {
+//                                data[offset + i]   = 150;
+//                            }
+                        }
+                        else {
                             for (int i = 0; i < bytesPerPixel; i++) {
-                                data[offset + i]   = 0;
+                                data[offset + i]   = buffer[offset + i];
                             }
                         }
                     }
                 }
             }
+            CGContextRotateCTM (c, radians(-90));
             UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
-            UIImageView *imageView = [[UIImageView alloc] initWithFrame:self.view.bounds];
-            imageView.image = img;
-            [self.view addSubview:imageView];
+            
             UIGraphicsEndImageContext();
+            UIImageView *imageView = [[UIImageView alloc] initWithFrame:_cameraPreviewView.bounds];
+            imageView.image = img;
+            
+            [_cameraPreviewView addSubview:imageView];
+            UIImageWriteToSavedPhotosAlbum(img, nil, nil, nil);
         }
     }
     
