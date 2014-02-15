@@ -16,7 +16,7 @@
 #define kCameraViewOffset 60
 #define KSizeOfSquare 75.0f
 
-#define BLACK_THRESHOLD 50
+#define BLACK_THRESHOLD 90
 #define PERCENT_ERROR .00001
 
 static inline double radians (double degrees) {return degrees * M_PI/180;}
@@ -257,6 +257,7 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
         takePicture = NO;
         CVPixelBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
         CVReturn lock = CVPixelBufferLockBaseAddress(pixelBuffer, 0);
+        NSMutableArray *circles = [[NSMutableArray alloc] init];
         if (lock == kCVReturnSuccess) {
             unsigned long w = 0;
             unsigned long h = 0;
@@ -273,45 +274,83 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
             unsigned char* data = CGBitmapContextGetData(c);
             NSLog(@"bytesPerPixel:%lu", bytesPerPixel);
             if (data != NULL) {
-                // iterate over the pixels in cropRect
-//                for(int y = cropRect.origin.y, yDest = 0; y<CGRectGetMaxY(cropRect); y++, yDest++) {
-//                    for(int x = cropRect.origin.x, xDest = 0; x<CGRectGetMaxX(cropRect); x++, xDest++) {
-//                        int offset = bytesPerPixel*((w*y)+x); // offset calculation in cropRect
-//                        int offsetDest = bytesPerPixel*((cropRect.size.width*yDest)+xDest); // offset calculation for destination image
-//                        for (int i = 0; i<bytesPerPixel; i++) {
-//                            data[offsetDest+i]   = buffer[offset+i];
+                
+//                for (int y = 0; y < h; y++) {
+//                    for (int x = 0; x < w; x++) {
+//                        unsigned long offset = bytesPerPixel*((w*y)+x);
+////                        NSLog(@"r:%d g:%d b:%d a:%f", buffer[offset], buffer[offset+1], buffer[offset+2], buffer[offset+3]/255.0);
+////                        float average = (buffer[offset] + buffer[offset+1] + buffer[offset+2])/3;
+//                        BOOL testPercent = (buffer[offset] > BLACK_THRESHOLD &&  buffer[offset+1] > BLACK_THRESHOLD &&  buffer[offset+2] > BLACK_THRESHOLD);
+//                        offset +=2;
+//                        if (!testPercent/* || (abs(1 - buffer[offset]/average) < PERCENT_ERROR &&  abs(1 - buffer[offset + 1]/average) < PERCENT_ERROR &&  abs(1 - buffer[offset + 2]/average) < PERCENT_ERROR)*/) {
+//                            //TODO:hack
+//                            data[offset] = 52;
+//                            data[offset + 1] = 170;
+//                            data[offset + 2] = 220;
+//                            data[offset + 3] = 255;
 //                        }
 //                    }
 //                }
-                
                 for (int y = 0; y < h; y++) {
+                    BOOL firstVerticalFound = NO;
                     for (int x = 0; x < w; x++) {
                         unsigned long offset = bytesPerPixel*((w*y)+x);
-//                        NSLog(@"r:%d g:%d b:%d a:%f", buffer[offset], buffer[offset+1], buffer[offset+2], buffer[offset+3]/255.0);
-//                        float average = (buffer[offset] + buffer[offset+1] + buffer[offset+2])/3;
-                        BOOL testPercent = (buffer[offset] > BLACK_THRESHOLD &&  buffer[offset+1] > BLACK_THRESHOLD &&  buffer[offset+2] > BLACK_THRESHOLD);
-                        offset +=2;
-                        if (!testPercent/* || (abs(1 - buffer[offset]/average) < PERCENT_ERROR &&  abs(1 - buffer[offset + 1]/average) < PERCENT_ERROR &&  abs(1 - buffer[offset + 2]/average) < PERCENT_ERROR)*/) {
+                        if ((buffer[offset] < BLACK_THRESHOLD &&  buffer[offset+1] < BLACK_THRESHOLD &&  buffer[offset+2] < BLACK_THRESHOLD) && !firstVerticalFound) {
                             //TODO:hack
+                            firstVerticalFound = YES;
+                            //check if corner
+                            int counter = 0;
+                            float percentage = .5;
+//                            for (int k = y; k < y + 16; k++) {
+//                                for (int j = x + 1; j < x + 51; j++) {
+//                                    unsigned long cOffset = bytesPerPixel*((w*k)+j);
+//                                    if ((buffer[cOffset] < BLACK_THRESHOLD &&  buffer[cOffset+1] < BLACK_THRESHOLD &&  buffer[cOffset+2] < BLACK_THRESHOLD)) {
+//                                        counter++;
+//                                    }
+//
+//                                }
+//                            }
+                            for (int k = y; k < y + 16; k++) {
+                                for (int j = x + 1; j < x + 51; j++) {
+                                    unsigned long cOffset = bytesPerPixel*((w*k)+j);
+                                    if ((buffer[cOffset] < BLACK_THRESHOLD &&  buffer[cOffset+1] < BLACK_THRESHOLD &&  buffer[cOffset+2] < BLACK_THRESHOLD)) {
+                                        counter++;
+                                    }
+                                    
+                                }
+                            }
+//                            NSLog(@"percentage:%f", counter/(19.0 * 6.0));
+                            if (counter/(50.0 * 6.0) > percentage) {
+                                UIView *circle = [[UIView alloc] initWithFrame:CGRectMake(((float)x/w) * self.view.frame.size.width, ((float)y/h) * self.view.frame.size.height, 30, 30)];
+                                circle.layer.cornerRadius = circle.frame.size.width/2;
+                                circle.backgroundColor = [UIColor colorWithRed:52/255.0 green:170/255.0 blue:220/255.0 alpha:1];
+                                [circles addObject:circle];
+                                x = w; y++;
+                            }
+                            
+                            
+                            offset +=2;
                             data[offset] = 52;
                             data[offset + 1] = 170;
                             data[offset + 2] = 220;
                             data[offset + 3] = 255;
                         }
-//                        else {
-//                            for (int i = 0; i < bytesPerPixel; i++) {
-//                                data[offset + i]   = buffer[offset + i];
-//                            }
-//                        }
                     }
                 }
+                
+                
             }
             CGContextRotateCTM (c, radians(-90));
             UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
             
             UIGraphicsEndImageContext();
             
-            
+            UIImageView *imageView = [[UIImageView alloc] initWithFrame:self.view.bounds];
+            imageView.image = img;
+            [self.view addSubview:imageView];
+            for (UIView *circle in circles) {
+                [self.view addSubview:circle];
+            }
             UIImageWriteToSavedPhotosAlbum(img, nil, nil, nil);
          }
 
