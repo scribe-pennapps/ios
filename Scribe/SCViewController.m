@@ -16,6 +16,9 @@
 #define kCameraViewOffset 60
 #define KSizeOfSquare 75.0f
 
+#define BLACK_THRESHOLD 50
+#define PERCENT_ERROR .01
+
 static inline double radians (double degrees) {return degrees * M_PI/180;}
 
 @interface SCViewController ()
@@ -283,17 +286,17 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
                 
                 for (int y = 0; y < h; y++) {
                     for (int x = 0; x < w; x++) {
-                        unsigned long offset = bytesPerPixel*((w*y)+x) + 2;
-//                        NSLog(@"r:%d g:%d b:%d a:%f", buffer[offset], buffer[offset+1], buffer[offset+2], buffer[offset+3]/255.0);
-                        int rand = arc4random() % 3;
-                        if (rand != 0) {
+                        unsigned long offset = bytesPerPixel*((w*y)+x);
+                        NSLog(@"r:%d g:%d b:%d a:%f", buffer[offset], buffer[offset+1], buffer[offset+2], buffer[offset+3]/255.0);
+                        float average = (buffer[offset] + buffer[offset+1] + buffer[offset+2])/3;
+                        BOOL testPercent = (buffer[offset] > BLACK_THRESHOLD &&  buffer[offset+1] > BLACK_THRESHOLD &&  buffer[offset+2] > BLACK_THRESHOLD);
+                        if (!testPercent || (abs(1 - buffer[offset]/average) < PERCENT_ERROR &&  abs(1 - buffer[offset + 1]/average) < PERCENT_ERROR &&  abs(1 - buffer[offset + 2]/average) < PERCENT_ERROR)) {
+                            //TODO:hack
+                            offset +=2;
                             data[offset] = 52;
                             data[offset + 1] = 170;
                             data[offset + 2] = 220;
                             data[offset + 3] = 255;
-//                            for (int i = 0; i < bytesPerPixel*1000; i++) {
-//                                data[offset + i]   = 150;
-//                            }
                         }
                         else {
                             for (int i = 0; i < bytesPerPixel; i++) {
@@ -311,6 +314,8 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
             imageView.image = img;
             
             [_cameraPreviewView addSubview:imageView];
+            
+            
             UIImageWriteToSavedPhotosAlbum(img, nil, nil, nil);
         }
     }
