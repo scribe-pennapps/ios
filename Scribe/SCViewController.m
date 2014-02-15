@@ -414,34 +414,29 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
             UIGraphicsEndImageContext();
             
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-                //            UIImageView *imageView = [[UIImageView alloc] initWithFrame:self.view.bounds];
-                //            imageView.image = img;
-                //            [self.view addSubview:imageView];
-                for (UIView *circle in circles) {
-                    //                [self.view addSubview:circle];
-                }
                 float previousY = 0;
-                for (int i = 0; i < origins.count; i++) {
+                CGPoint first = [origins[0] CGPointValue];
+                CGPoint last = [origins[origins.count - 1] CGPointValue];
+                UIView *pageView = [[UIView alloc] initWithFrame:CGRectMake(10, first.y, 300, last.y - first.y)];
+                pageView.layer.borderColor = [UIColor redColor].CGColor;
+                pageView.layer.borderWidth = 2;
+                [self.view addSubview:pageView];
+                NSMutableDictionary *dom = [[NSMutableDictionary alloc] init];
+                for (int i = 1; i < origins.count-1; i++) {
                     
                     CGPoint current = [origins[i] CGPointValue];
-                    if (current.y - previousY > 30) {
+                    if (current.y - first.y < 10 || last.y - current.y < 15) {
+                        continue;
+                    }
+                    if (current.y - previousY > 55) {
                         UIView *line = [[UIView alloc] initWithFrame:CGRectMake(10, current.y, 300, 2)];
                         line.backgroundColor = [UIColor redColor];
                         [self.view addSubview:line];
                         previousY = current.y;
                     }
+                    
                 }
-                CGPoint first = [origins[0] CGPointValue];
-                CGPoint last = [origins[origins.count - 1] CGPointValue];
-                UIView *firstVerticalLine = [[UIView alloc] initWithFrame:CGRectMake(10, first.y, 2, last.y - first.y)];
-                firstVerticalLine.backgroundColor = [UIColor redColor];
-                [self.view addSubview:firstVerticalLine];
                 
-                UIView *lastVerticalLine = [[UIView alloc] initWithFrame:CGRectMake(310, first.y, 2, last.y - first.y)];
-                lastVerticalLine.backgroundColor = [UIColor redColor];
-                [self.view addSubview:lastVerticalLine];
-                
-                //            UIImageWriteToSavedPhotosAlbum(img, nil, nil, nil);
             });
 
          }
