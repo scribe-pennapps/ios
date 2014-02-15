@@ -347,8 +347,8 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
                             int counter = 0;
                             //weighted horizontal
 //                            NSLog(@"%d, %lu", x + 1500, w-1);
-                            int horizontalEndLimit = MIN(x + 1500, w - 400);
-                            int horizontalStartLimit = MAX(x - 1500, 0);
+                            int horizontalStartLimit = MAX(x - 2200, 0);
+                            int horizontalEndLimit = MIN(x + 1300, w - 400);
                             for (int k = y; k < y + 10; k++) {
                                 for (int j = horizontalStartLimit; j < horizontalEndLimit; j++) {
                                     unsigned long cOffset = bytesPerPixel*((w*k)+j);
@@ -358,9 +358,9 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
                                     
                                 }
                             }
-
-                            int verticalStartLimit = MIN(y + 11, h - 4);
-                            int verticalEndLimit = MIN(y - 11, 0);
+                            
+                            int verticalStartLimit = MAX(y - 11, 0);
+                            int verticalEndLimit = MIN(y + 11, h - 4);
                             for (int k = verticalStartLimit; k < verticalEndLimit; k++) {
                                 for (int j = x + 1; j < x + 11; j++) {
                                     unsigned long cOffset = bytesPerPixel*((w*k)+j);
@@ -370,11 +370,16 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
                                     
                                 }
                             }
-                            float percentage = .004;
+                            float percentage = .01;
 //                            ((horizontalLimit - (x + 1)) * (verticalLimit - y))
-                            float finalPercentage = counter/((float)((horizontalEndLimit - horizontalStartLimit) *1)* (verticalEndLimit - verticalStartLimit));
-                            NSLog(@"percentage:%f", finalPercentage);
+                            
+//                            NSLog(@"%f", ((float)((horizontalEndLimit - horizontalStartLimit)* (verticalEndLimit - verticalStartLimit))));
+                            float finalPercentage = counter/((float)(abs((horizontalEndLimit - horizontalStartLimit) *1)* (verticalEndLimit - verticalStartLimit)));
+//                            NSLog(@"percentage:%f", finalPercentage);
                             if (finalPercentage > percentage && finalPercentage < 8) {
+                                if (circles.count == 0) {
+                                    finalPercentage *= 2;
+                                }
                                 UIView *circle = [[UIView alloc] initWithFrame:CGRectMake(((float)x/w) * self.view.frame.size.width, ((float)y/h) * self.view.frame.size.height, 500 * finalPercentage, 500 * finalPercentage)];
                                 circle.layer.cornerRadius = circle.frame.size.width/2;
                                 circle.backgroundColor = [UIColor colorWithRed:52/255.0 green:170/255.0 blue:220/255.0 alpha:1];
@@ -386,7 +391,7 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
                                 [circles addObject:view];
                                 
                                 [circles addObject:circle];
-                                x = 0; y += 20;
+                                x = 0; y += 26;
                             }
                             
                             
