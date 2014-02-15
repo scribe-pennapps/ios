@@ -89,7 +89,7 @@
 }
 
 - (void)takePicture {
-    ;
+    takePicture = YES;
 }
 
 - (void)focus:(UITapGestureRecognizer *)recognizer {
@@ -244,6 +244,48 @@
 -(void)captureOutput:(AVCaptureOutput *)captureOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
     
     CMFormatDescriptionRef formatDescription = CMSampleBufferGetFormatDescription(sampleBuffer);
+    
+    if (takePicture) {
+        takePicture = NO;
+        CVPixelBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+        CVReturn lock = CVPixelBufferLockBaseAddress(pixelBuffer, 0);
+        if (lock == kCVReturnSuccess) {
+            unsigned long w = 0;
+            unsigned long h = 0;
+            unsigned long r = 0;
+            unsigned long bytesPerPixel = 0;
+            unsigned char *buffer;
+            w = CVPixelBufferGetWidth(pixelBuffer);
+            h = CVPixelBufferGetHeight(pixelBuffer);
+            r = CVPixelBufferGetBytesPerRow(pixelBuffer);
+            bytesPerPixel = r/w;
+            buffer = CVPixelBufferGetBaseAddress(pixelBuffer);
+            UIGraphicsBeginImageContext(CGSizeMake(w, h));
+            CGContextRef c = UIGraphicsGetCurrentContext();
+            unsigned char* data = CGBitmapContextGetData(c);
+            if (data != NULL) {
+                // iterate over the pixels in cropRect
+//                for(int y = cropRect.origin.y, yDest = 0; y<CGRectGetMaxY(cropRect); y++, yDest++) {
+//                    for(int x = cropRect.origin.x, xDest = 0; x<CGRectGetMaxX(cropRect); x++, xDest++) {
+//                        int offset = bytesPerPixel*((w*y)+x); // offset calculation in cropRect
+//                        int offsetDest = bytesPerPixel*((cropRect.size.width*yDest)+xDest); // offset calculation for destination image
+//                        for (int i = 0; i<bytesPerPixel; i++) {
+//                            data[offsetDest+i]   = buffer[offset+i];
+//                        }
+//                    }
+//                }
+                
+                for (int y = 0; y < h; y++) {
+                    for (int x = 0; x < w; x++) {
+                        <#statements#>
+                    }
+                }
+            }
+            UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
+            UIGraphicsEndImageContext();
+        }
+    }
+    
     if (connection == videoConnection) {
         if (self.videoType == 0) self.videoType = CMFormatDescriptionGetMediaSubType( formatDescription );
         CVPixelBufferRef pixelBuffer = (CVPixelBufferRef)CMSampleBufferGetImageBuffer(sampleBuffer);
@@ -255,7 +297,6 @@
 //        }
         CGAffineTransform transform = CGAffineTransformMakeRotation(-M_PI_2);
         image = [image imageByApplyingTransform:transform];
-//        image = [image imageByApplyingTransform:CGAffineTransformTranslate(CGAffineTransformMakeScale(.665,  .665), 0, kCameraViewOffset*2.5)];
         
         
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -263,94 +304,7 @@
             [self.context presentRenderbuffer:GL_RENDERBUFFER];
         });
     }
-//    @synchronized(self)
-//    {
-//        if (paused) return;
-//        if (discontinued)
-//        {
-//            if (isVideo) return;
-//            NSLog(@"IN _DISCNT");
-//            discontinued = NO;
-//            // calc adjustment
-//            CMTime pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
-//            CMTime last = isVideo ? _lastVideo : _lastAudio;
-//            if (last.flags & kCMTimeFlags_Valid)
-//            {
-//                if (_timeOffset.flags & kCMTimeFlags_Valid)
-//                {
-//                    pts = CMTimeSubtract(pts, _timeOffset);
-//                }
-//                CMTime offset = CMTimeSubtract(pts, last);
-//                NSLog(@"Setting offset from %s", isVideo ? "video": "audio");
-//                NSLog(@"Adding %f to %f (pts %f)", ((double)offset.value)/offset.timescale, ((double)_timeOffset.value)/_timeOffset.timescale, ((double)pts.value/pts.timescale));
-//                
-//                // this stops us having to set a scale for _timeOffset before we see the first video time
-//                if (_timeOffset.value == 0)
-//                {
-//                    _timeOffset = offset;
-//                }
-//                else
-//                {
-//                    _timeOffset = CMTimeAdd(_timeOffset, offset);
-//                }
-//            }
-//            _lastVideo.flags = 0;
-//            _lastAudio.flags = 0;
-//        }
-//        CFRetain(sampleBuffer);
-//        CFRetain(formatDescription);
-//        
-//        if (_timeOffset.value > 0)
-//        {
-//            CFRelease(sampleBuffer);
-//            sampleBuffer = [self adjustTime:sampleBuffer by:_timeOffset];
-//        }
-//        
-//        // record most recent time so we know the length of the pause
-//        CMTime pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
-//        CMTime dur = CMSampleBufferGetDuration(sampleBuffer);
-//        if (dur.value > 0) pts = CMTimeAdd(pts, dur);
-//        if (isVideo) _lastVideo = pts;
-//        else  _lastAudio = pts;
-//        
-//        
-//        dispatch_async(movieWritingQueue, ^{
-//            
-//            if ( assetWriter ) {
-//                
-//                BOOL wasReadyToRecord = (readyToRecordAudio && readyToRecordVideo);
-//                
-//                if (connection == videoConnection) {
-//                    
-//                    // Initialize the video input if this is not done yet
-//                    if (!readyToRecordVideo)
-//                        readyToRecordVideo = [self setupAssetWriterVideoInput:formatDescription];
-//                    
-//                    // Write video data to file
-//                    if (readyToRecordVideo && readyToRecordAudio)
-//                        [self writeSampleBuffer:sampleBuffer ofType:AVMediaTypeVideo];
-//                }
-//                else if (connection == audioConnection) {
-//                    
-//                    // Initialize the audio input if this is not done yet
-//                    if (!readyToRecordAudio)
-//                        readyToRecordAudio = [self setupAssetWriterAudioInput:formatDescription];
-//                    
-//                    // Write audio data to file
-//                    if (readyToRecordAudio && readyToRecordVideo)
-//                        [self writeSampleBuffer:sampleBuffer ofType:AVMediaTypeAudio];
-//                }
-//                
-//                BOOL isReadyToRecord = (readyToRecordAudio && readyToRecordVideo);
-//                if ( !wasReadyToRecord && isReadyToRecord ) {
-//                    recordingWillBeStarted = NO;
-//                    self.recording = YES;
-//                }
-//            }
-//            CFRelease(sampleBuffer);
-//            CFRelease(formatDescription);
-//        });
-//    }
+
 }
 
 #pragma mark - SCSitesViewControllerDelegate

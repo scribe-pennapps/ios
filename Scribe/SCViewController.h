@@ -30,6 +30,7 @@
     
     SCSitesViewController *svc;
     CAShapeLayer *focusGrid;
+    BOOL takePicture;
 }
 
 @property (nonatomic, strong) AVCaptureDevice *device;
