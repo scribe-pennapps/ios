@@ -14,6 +14,8 @@
 #import <Accelerate/Accelerate.h>
 
 #define kCameraViewOffset 60
+#define KSizeOfSquare 75.0f
+
 
 @interface SCViewController ()
 @property (readwrite) CMVideoCodecType videoType;
@@ -65,9 +67,152 @@
     maskImage = [CIImage imageWithCGImage:cgImg];
     CGImageRelease(cgImg);
     
+    
+    
+    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(takePicture)];
+    tap.numberOfTapsRequired = 2;
+    [_cameraPreviewView addGestureRecognizer:tap];
+    
+    UITapGestureRecognizer *focusTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(focus:)];
+    focusTap.numberOfTapsRequired = 1;
+    [focusTap requireGestureRecognizerToFail:tap];
+    [_cameraPreviewView addGestureRecognizer:focusTap];
+    
+    UISwipeGestureRecognizer *swipe = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(swiped)];
+    swipe.direction = UISwipeGestureRecognizerDirectionUp | UISwipeGestureRecognizerDirectionDown;
+    [_cameraPreviewView addGestureRecognizer:swipe];
+
     svc = [[SCSitesViewController alloc] init];
     svc = [self.storyboard instantiateViewControllerWithIdentifier:@"Sites"];
+    svc.delegate = self;
     [_overlayView addSubview:svc.view];
+}
+
+- (void)takePicture {
+    ;
+}
+
+- (void)focus:(UITapGestureRecognizer *)recognizer {
+    CGPoint locationPoint = [recognizer locationInView:self.view];
+    [self autoFocusAtPoint:locationPoint];
+    CGPoint resizedPoint = CGPointMake(locationPoint.x / _cameraPreviewView.bounds.size.width, locationPoint.y / _cameraPreviewView.bounds.size.height);
+    CGAffineTransform translateTransform = CGAffineTransformMakeTranslation(0.5,0.5);
+    CGAffineTransform rotationTransform = CGAffineTransformMakeRotation(-90);
+    CGAffineTransform customRotation = CGAffineTransformConcat(CGAffineTransformConcat( CGAffineTransformInvert(translateTransform), rotationTransform), translateTransform);
+    CGPoint newPoint = CGPointApplyAffineTransform(resizedPoint, customRotation);
+    
+    AVCaptureDevice *captureDevice = self.device;
+    if ([_device isFocusPointOfInterestSupported] && [captureDevice isFocusModeSupported:AVCaptureFocusModeAutoFocus]) {
+        NSError *error;
+        if ([captureDevice lockForConfiguration:&error]) {
+            [captureDevice setFocusPointOfInterest:newPoint];
+            [captureDevice setFocusMode:AVCaptureFocusModeAutoFocus];
+            [captureDevice unlockForConfiguration];
+        }
+    }
+}
+
+- (void) autoFocusAtPoint:(CGPoint)point
+{
+    //make square for focus
+    float halfSize = KSizeOfSquare/2.0;
+    
+    
+    focusGrid = [[CAShapeLayer alloc] init];
+    CGRect finalRect = (CGRect){
+        point.x - halfSize,
+        point.y - halfSize,
+        KSizeOfSquare,KSizeOfSquare
+    };
+    UIBezierPath *finalPath = [self pathWithRect:finalRect];
+    
+    halfSize = KSizeOfSquare*3.0/2.0;
+    CGRect initialRect = (CGRect){
+        point.x - halfSize,
+        point.y - halfSize,
+        KSizeOfSquare*3,KSizeOfSquare*3
+    };
+    
+    UIBezierPath *initialPath = [self pathWithRect:initialRect];
+    
+    focusGrid.path = initialPath.CGPath;
+    focusGrid.lineWidth = 1.0;
+    focusGrid.miterLimit = 5.0;
+    focusGrid.fillColor = [UIColor clearColor].CGColor;
+    //grid.shouldRasterize = YES;
+    focusGrid.lineCap = kCALineCapRound;
+    focusGrid.strokeColor = [UIColor whiteColor].CGColor;
+    
+    //grid.shadow
+    focusGrid.strokeColor = [UIColor whiteColor].CGColor;
+    
+    CAShapeLayer *maskLayert = [[CAShapeLayer alloc] init];
+    maskLayert.path = initialPath.CGPath;
+    maskLayert.fillColor = [UIColor clearColor].CGColor;
+    maskLayert.lineWidth = 2;
+    maskLayert.miterLimit = 5.0;
+    maskLayert.lineCap = kCALineCapRound;
+    maskLayert.strokeColor = [UIColor whiteColor].CGColor;
+    
+    
+    [_cameraPreviewView.layer addSublayer:focusGrid];
+    focusGrid.mask = maskLayert;
+    
+    [CATransaction begin];
+    
+    CABasicAnimation *animation = [CABasicAnimation animationWithKeyPath:@"path"];
+    animation.duration = 0.25;
+    animation.removedOnCompletion = NO;
+    animation.fillMode = kCAFillModeForwards;
+    animation.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+    animation.toValue = (id)finalPath.CGPath;
+    [focusGrid addAnimation:animation forKey:@"animatePath"];
+    [maskLayert addAnimation:animation forKey:@"animatePathII"];
+    
+    
+    [CATransaction setCompletionBlock:^{
+        
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+            
+            [focusGrid removeAllAnimations];
+            [maskLayert removeAllAnimations];
+            [focusGrid removeFromSuperlayer];
+            [maskLayert removeFromSuperlayer];
+            focusGrid = nil;
+            
+        });
+    }];
+    [CATransaction commit];
+    
+}
+
+- (UIBezierPath*)pathWithRect:(CGRect)rect{
+    UIBezierPath *path = [UIBezierPath bezierPathWithOvalInRect:rect];
+    
+    CGFloat offset = rect.size.width/10.0;
+    CGPoint origin = rect.origin;
+    
+    [path moveToPoint:(CGPoint){origin.x + rect.size.width/2.0,origin.y}];//Top
+    [path addLineToPoint:(CGPoint){origin.x + rect.size.width/2.0,origin.y + offset}];
+    
+    [path moveToPoint:(CGPoint){origin.x,origin.y + rect.size.height/2.0}];//Left
+    [path addLineToPoint:(CGPoint){origin.x + offset,origin.y + rect.size.height/2.0}];
+    
+    [path moveToPoint:(CGPoint){origin.x +rect.size.width,origin.y + rect.size.height/2.0}];//Right
+    [path addLineToPoint:(CGPoint){origin.x + rect.size.width - offset,origin.y + rect.size.height/2.0}];
+    
+    [path moveToPoint:(CGPoint){origin.x + rect.size.width/2.0,origin.y + rect.size.height}];//Bottom
+    [path addLineToPoint:(CGPoint){origin.x + rect.size.width/2.0,origin.y + rect.size.height - offset}];
+    
+    return path;
+}
+
+- (void)swiped {
+    [UIView animateWithDuration:.5 animations:^{
+        _overlayView.alpha = 1;
+    }completion:^(BOOL isCompleted){
+        
+    }];
 }
 
 - (AVCaptureDevice *)videoDeviceWithPosition:(AVCaptureDevicePosition)position
@@ -104,9 +249,9 @@
         CVPixelBufferRef pixelBuffer = (CVPixelBufferRef)CMSampleBufferGetImageBuffer(sampleBuffer);
         CIImage *image = [CIImage imageWithCVPixelBuffer:pixelBuffer];
 //        if (hasOverlay && NO) {
-            CIFilter *filter = [CIFilter filterWithName:@"CIGaussianBlur"];
-            [filter setValue:image forKey:kCIInputImageKey]; [filter setValue:@22.0f forKey:@"inputRadius"];
-            image = [filter valueForKey:kCIOutputImageKey];
+//            CIFilter *filter = [CIFilter filterWithName:@"CIGaussianBlur"];
+//            [filter setValue:image forKey:kCIInputImageKey]; [filter setValue:@22.0f forKey:@"inputRadius"];
+//            image = [filter valueForKey:kCIOutputImageKey];
 //        }
         CGAffineTransform transform = CGAffineTransformMakeRotation(-M_PI_2);
         image = [image imageByApplyingTransform:transform];
@@ -208,5 +353,13 @@
 //    }
 }
 
+#pragma mark - SCSitesViewControllerDelegate
 
+- (void)goToCamera {
+    [UIView animateWithDuration:.5 animations:^{
+        _overlayView.alpha = 0;
+    }completion:^(BOOL isCompleted){
+        
+    }];
+}
 @end

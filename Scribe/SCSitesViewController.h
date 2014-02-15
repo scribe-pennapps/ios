@@ -8,6 +8,14 @@
 
 #import <UIKit/UIKit.h>
 
+@protocol SCSitesViewControllerDelegate <NSObject>
+
+- (void)goToCamera;
+
+@end
 @interface SCSitesViewController : UIViewController
 
+@property (nonatomic, strong) id <SCSitesViewControllerDelegate> delegate;
+
+- (IBAction)goToCamera:(id)sender;
 @end

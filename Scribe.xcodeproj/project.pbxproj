@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		9E374AA618AF1ED100FEE7EB /* SCSitesViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 9E374AA518AF1ED100FEE7EB /* SCSitesViewController.m */; };
-		9E374AAA18AF241F00FEE7EB /* Flip@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 9E374AA918AF241F00FEE7EB /* Flip@2x.png */; };
+		9E374AAC18AF25C300FEE7EB /* Flip@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 9E374AAB18AF25C300FEE7EB /* Flip@2x.png */; };
 		9E6C30B618AF1303002A917E /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E6C30B518AF1303002A917E /* Foundation.framework */; };
 		9E6C30B818AF1303002A917E /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E6C30B718AF1303002A917E /* CoreGraphics.framework */; };
 		9E6C30BA18AF1303002A917E /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E6C30B918AF1303002A917E /* UIKit.framework */; };
@@ -45,7 +45,7 @@
 /* Begin PBXFileReference section */
 		9E374AA418AF1ED100FEE7EB /* SCSitesViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SCSitesViewController.h; sourceTree = "<group>"; };
 		9E374AA518AF1ED100FEE7EB /* SCSitesViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SCSitesViewController.m; sourceTree = "<group>"; };
-		9E374AA918AF241F00FEE7EB /* Flip@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Flip@2x.png"; sourceTree = "<group>"; };
+		9E374AAB18AF25C300FEE7EB /* Flip@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Flip@2x.png"; sourceTree = "<group>"; };
 		9E6C30B218AF1303002A917E /* Scribe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scribe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9E6C30B518AF1303002A917E /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		9E6C30B718AF1303002A917E /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
@@ -153,7 +153,7 @@
 				9E374AA418AF1ED100FEE7EB /* SCSitesViewController.h */,
 				9E374AA518AF1ED100FEE7EB /* SCSitesViewController.m */,
 				9E6C30CD18AF1303002A917E /* Images.xcassets */,
-				9E374AA918AF241F00FEE7EB /* Flip@2x.png */,
+				9E374AAB18AF25C300FEE7EB /* Flip@2x.png */,
 				9E6C30BC18AF1303002A917E /* Supporting Files */,
 			);
 			path = Scribe;
@@ -268,7 +268,7 @@
 				9E6C30CE18AF1303002A917E /* Images.xcassets in Resources */,
 				9E6C30C018AF1303002A917E /* InfoPlist.strings in Resources */,
 				9E6C30C918AF1303002A917E /* Main.storyboard in Resources */,
-				9E374AAA18AF241F00FEE7EB /* Flip@2x.png in Resources */,
+				9E374AAC18AF25C300FEE7EB /* Flip@2x.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

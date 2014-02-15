@@ -17,7 +17,7 @@
 #import "SCSitesViewController.h"
 
 
-@interface SCViewController : UIViewController <AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAudioDataOutputSampleBufferDelegate> {
+@interface SCViewController : UIViewController <AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, SCSitesViewControllerDelegate> {
     AVCaptureSession *avCaptureSession;
     CIContext *coreImageContext;
     CIImage *maskImage;
@@ -29,6 +29,7 @@
     AVCaptureDeviceInput *videoIn;
     
     SCSitesViewController *svc;
+    CAShapeLayer *focusGrid;
 }
 
 @property (nonatomic, strong) AVCaptureDevice *device;
