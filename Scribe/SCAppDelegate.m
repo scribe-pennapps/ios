@@ -12,6 +12,7 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
+    [[NSUserDefaults standardUserDefaults] setObject:@[@{@"Title" : @"Fortheon", @"URL" : @"fortheon.com"}, @{@"Title" : @"Google", @"URL" : @"google.com"}] forKey:@"Sites"];
     return YES;
 }
 							

@@ -9,15 +9,22 @@
 
 #import "SCViewController.h"
 
+#import "JSONKit.h"
 
 #import <MobileCoreServices/MobileCoreServices.h>
 #import <Accelerate/Accelerate.h>
+
+
+#import "AFNetworking.h"
+//#import "AFHTTPRequestOperation.h"
 
 #define kCameraViewOffset 60
 #define KSizeOfSquare 75.0f
 
 #define BLACK_THRESHOLD 45
 #define PERCENT_ERROR .00001
+
+#define BOUNDARY @"AaB03x"
 
 static inline double radians (double degrees) {return degrees * M_PI/180;}
 
@@ -34,6 +41,7 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
 - (void)viewDidLoad
 {
     [super viewDidLoad];
+    hasOverlay = YES;
 	self.context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
     if (!self.context) {
         NSLog(@"Failed to create ES context");
@@ -91,9 +99,9 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
     svc.delegate = self;
     [_overlayView addSubview:svc.view];
     
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, .25 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        [self goToCamera];
-    });
+//    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, .25 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+//        [self goToCamera];
+//    });
 }
 
 - (void)takePicture {
@@ -219,7 +227,7 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
     [UIView animateWithDuration:.5 animations:^{
         _overlayView.alpha = 1;
     }completion:^(BOOL isCompleted){
-        
+        hasOverlay = YES;
     }];
 }
 
@@ -287,7 +295,7 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
     
     if (takePicture) {
         takePicture = NO;
-        CVPixelBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+        /*CVPixelBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
         
         
         CVReturn lock = CVPixelBufferLockBaseAddress(pixelBuffer, 0);
@@ -328,8 +336,48 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
             }
             
             
-        }
+        }*/
+        CVPixelBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
         
+        
+        CVReturn lock = CVPixelBufferLockBaseAddress(pixelBuffer, 0);
+        if (lock == kCVReturnSuccess) {
+            unsigned long w = 0;
+            unsigned long h = 0;
+            unsigned long r = 0;
+            unsigned long bytesPerPixel = 0;
+            unsigned char *buffer;
+            //switch
+            h = CVPixelBufferGetWidth(pixelBuffer);
+            w = CVPixelBufferGetHeight(pixelBuffer);
+            r = CVPixelBufferGetBytesPerRow(pixelBuffer);
+            bytesPerPixel = r/h;
+            buffer = [self rotateBuffer:sampleBuffer];
+            UIGraphicsBeginImageContext(CGSizeMake(w, h));
+            CGContextRef c = UIGraphicsGetCurrentContext();
+            unsigned char* data = CGBitmapContextGetData(c);
+            if (data != NULL) {
+                for (int y = 0; y < h- 4; y++) {
+                    for (int x = 0; x < w -4; x++) {
+                        unsigned long offset = bytesPerPixel*((w*y)+x);
+                        offset +=2;
+                        data[offset] = buffer[offset];
+                        data[offset + 1] = buffer[offset + 1];
+                        data[offset + 2] = buffer[offset + 2];
+                        data[offset + 3] = buffer[offset + 3];
+                    }
+                }
+            }
+            
+            CGImageRef imgRef = CGBitmapContextCreateImage(c);
+            UIImage *img = [UIImage imageWithCGImage:imgRef];
+            UIGraphicsEndImageContext();
+            UIImageView *v = [[UIImageView alloc] initWithFrame:self.view.bounds];
+            v.image = img;
+            [self.view addSubview:v];
+            UIImageWriteToSavedPhotosAlbum(img, self, @selector(image:finishedSavingWithError:contextInfo:), nil);
+            
+        }
         
     }
     
@@ -337,11 +385,11 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
         if (self.videoType == 0) self.videoType = CMFormatDescriptionGetMediaSubType( formatDescription );
         CVPixelBufferRef pixelBuffer = (CVPixelBufferRef)CMSampleBufferGetImageBuffer(sampleBuffer);
         CIImage *image = [CIImage imageWithCVPixelBuffer:pixelBuffer];
-        //        if (hasOverlay && NO) {
-        //            CIFilter *filter = [CIFilter filterWithName:@"CIGaussianBlur"];
-        //            [filter setValue:image forKey:kCIInputImageKey]; [filter setValue:@22.0f forKey:@"inputRadius"];
-        //            image = [filter valueForKey:kCIOutputImageKey];
-        //        }
+        if (hasOverlay) {
+            CIFilter *filter = [CIFilter filterWithName:@"CIGaussianBlur"];
+            [filter setValue:image forKey:kCIInputImageKey]; [filter setValue:@18.0f forKey:@"inputRadius"];
+            image = [filter valueForKey:kCIOutputImageKey];
+        }
         CGAffineTransform transform = CGAffineTransformMakeRotation(-M_PI_2);
         image = [image imageByApplyingTransform:transform];
         
@@ -355,58 +403,130 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
 }
 
 
-- (void)image:(UIImage *)image finishedSavingWithError:(NSError *)imageError contextInfo:(void *)contextInfo{
+-(void)image:(UIImage *)image finishedSavingWithError:(NSError *)imageError contextInfo:(void *)contextInfo {
+    if (imageError) {
+        UIAlertView *alert = [[UIAlertView alloc]
+                              initWithTitle: @"Save failed"
+                              message: @"Failed to save image"
+                              delegate: nil
+                              cancelButtonTitle:@"OK"
+                              otherButtonTitles:nil];
+        [alert show];
+        return;
+    }
+    /*NSLog(@"finishedSavingWithError:%@", NSStringFromCGSize(image.size));
     
-    NSMutableURLRequest *req = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:@"http://scribe.zachlatta.com/make_site"]];
-    [req setHTTPMethod:@"POST"];
-//    NSDictionary *uploadDictinoary = @{@"type": @"body",
-//                                       @"attrs": @[],
-//                                       @"children": @[@{@"type": @"navbar",@"attr": @{@"inverse": @YES, @"title": @"scribe",@"elements": @[@"Home"]},@"children": @[]},
-//                                                      @{@"type": @"jumbotron",@"attr": @{ @"heading": @"Introducing Scribe", @"subheading": @"Turn any picture into a fully-functional website." }}]
-//                                       };
-    NSDictionary *uploadDictionary = @{
-                                       @"type": @"body",
-                                       @"attrs": @[],
-                                       @"children": @[
-                                                    @{
-                                                        @"type": @"navbar",
-                                                        @"attr": @{
-                                                            @"inverse": @YES,
-                                                            @"title": @"scribe",
-                                                            @"elements": @[
-                                                                         @"Home"
-                                                                         ]
-                                                        },
-                                                        @"children": @[]
-                                                    },
-                                                    @{
-                                                        @"type": @"container",
-                                                        @"attr": [NSNull null],
-                                                        @"children":  @[
-                                                                      @{
-                                                                          @"type": @"jumbotron",
-                                                                          @"attr": @{
-                                                                              @"heading": @"Introducing Scribe",
-                                                                              @"subheading": @"Turn any picture into a fully-functional website."
-                                                                          }
-                                                                      }
-                                                                      ]
-                                                    }  
-                                                    ]
-                                       };
-    NSData *uploadData = [NSKeyedArchiver archivedDataWithRootObject:uploadDictionary];
-
-    [req setHTTPBody:uploadData];
-    [req setValue:@"gzip" forHTTPHeaderField:@"Accept-Encoding"];
     NSError *error = nil; NSURLResponse *response = nil;
+    NSMutableData *body = [NSMutableData data];
+//    NSLog(@"Size:%@", NSStringFromCGSize(image.size));
+//    image = [self resizeImage:image newSize:CGSizeMake(image.size.width *.3, image.size.height *.3)];
+//    NSLog(@"Size:%@", NSStringFromCGSize(image.size));
+    NSData *dataImage = UIImagePNGRepresentation(image);
+    if (!dataImage) {
+        NSLog(@"shit");
+    }
+    NSDictionary *dictionary = @{@"file": dataImage};
+    [dictionary enumerateKeysAndObjectsUsingBlock:^(NSString *key, id value, BOOL *stop) {
+        [body appendData:[[NSString stringWithFormat:@"--%@\r\n", BOUNDARY] dataUsingEncoding:NSUTF8StringEncoding]];
+        
+        if ([value isKindOfClass:[NSData class]]) {
+            NSString *name = @"file";
+            NSString *filename = @"file.png";
+            NSString *type = @"image/png";
+            [body appendData: [[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"; filename=\"%@\"\r\nContent-Type: %@\r\nContent-Transfer-Encoding: binary\r\n\r\n", name, filename, type] dataUsingEncoding:NSUTF8StringEncoding]];
+        } else {
+            [body appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n", key] dataUsingEncoding:NSUTF8StringEncoding]];
+        }
+        
+        if ([value isKindOfClass:[NSData class]]) {
+            
+            
+            [body appendData:value];
+            
+        } else {
+            [body appendData:[value dataUsingEncoding:NSUTF8StringEncoding]];
+        }
+        
+        [body appendData:[@"\r\n" dataUsingEncoding:NSUTF8StringEncoding]];
+    }];
+    
+    [body appendData:[[NSString stringWithFormat:@"--%@--\r\n", BOUNDARY] dataUsingEncoding:NSUTF8StringEncoding]];
+    NSString *postLength = [NSString stringWithFormat:@"%d", [body length]];
+    NSMutableURLRequest *req = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:@"http://scribe.zachlatta.com/upload"] cachePolicy: NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:30];
+    [req setHTTPMethod:@"POST"];
+    [req setCachePolicy:NSURLRequestReloadIgnoringLocalCacheData];
+    [req setHTTPShouldHandleCookies:NO];
+    [req setTimeoutInterval:30];
+    [req setValue:@"gzip" forHTTPHeaderField:@"Accept-Encoding"];
+    NSString *contentType = [NSString stringWithFormat:@"multipart/form-data; boundary=%@", BOUNDARY];
+    [req setValue:contentType forHTTPHeaderField: @"Content-Type"];
+    [req setValue:postLength forHTTPHeaderField:@"Content-Length"];
+    [req setHTTPBody:body];
+    
     NSData *data = [NSURLConnection sendSynchronousRequest:req returningResponse:&response error:&error];
     if (error) {
         NSLog(@"Error:%@", error.localizedDescription);
     }
     else {
-    }
+        id d = [[JSONDecoder decoder] objectWithData:data];
+        NSLog(@"response:%@", d);
+        if (d[@"error"]) {
+            UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Error" message:@"Please try retaking the picture" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
+            [alert show];
+        }
+        [self swiped];
+    }*/
+    
+    NSData *imageData = UIImagePNGRepresentation(image);
+    AFHTTPRequestOperationManager *manager = [AFHTTPRequestOperationManager manager];
+    manager.responseSerializer = [AFHTTPResponseSerializer serializer];
+    [manager POST:@"http://scribe.zachlatta.com/upload" parameters:nil constructingBodyWithBlock:^(id<AFMultipartFormData> formData) {
+        [formData appendPartWithFileData:imageData name:@"file" fileName:@"file.png" mimeType:@"image/png"];
+    } success:^(AFHTTPRequestOperation *operation, id responseObject) {
+        NSString *string = [[NSString alloc] initWithData:responseObject encoding:NSUTF8StringEncoding];
+        NSLog(@"Success: %@", string);
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        NSLog(@"Error: %@", error);
+    }];
+//    NSURL *url = [NSURL URLWithString:@"http://scribe.zachlatta.com/upload"];
+//    AFHTTPClient *httpClient = [[AFHTTPClient alloc] initWithBaseURL:url];
+//    
+//    NSDictionary *params = [NSDictionary dictionaryWithObjectsAndKeys:
+//                            height, @"user[height]",
+//                            weight, @"user[weight]",
+//                            nil];
+//    [httpClient postPath:@"/myobject" parameters:params success:^(AFHTTPRequestOperation *operation, id responseObject) {
+//        NSString *responseStr = [[NSString alloc] initWithData:responseObject encoding:NSUTF8StringEncoding];
+//        NSLog(@"Request Successful, response '%@'", responseStr);
+//    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+//        NSLog(@"[HTTPClient Error]: %@", error.localizedDescription);
+//    }];
 }
 
+- (UIImage *)resizeImage:(UIImage*)image newSize:(CGSize)newSize {
+    CGRect newRect = CGRectIntegral(CGRectMake(0, 0, newSize.width, newSize.height));
+    CGImageRef imageRef = image.CGImage;
+    
+    UIGraphicsBeginImageContextWithOptions(newSize, NO, 0);
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    
+    // Set the quality level to use when rescaling
+    CGContextSetInterpolationQuality(context, kCGInterpolationHigh);
+    CGAffineTransform flipVertical = CGAffineTransformMake(1, 0, 0, -1, 0, newSize.height);
+    
+    CGContextConcatCTM(context, flipVertical);
+    // Draw into the context; this scales the image
+    CGContextDrawImage(context, newRect, imageRef);
+    
+    // Get the resized image from the context and a UIImage
+    CGImageRef newImageRef = CGBitmapContextCreateImage(context);
+    UIImage *newImage = [UIImage imageWithCGImage:newImageRef];
+    
+    CGImageRelease(newImageRef);
+    UIGraphicsEndImageContext();
+    
+    return newImage;
+}
 
 
 #pragma mark - SCSitesViewControllerDelegate
@@ -415,7 +535,7 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
     [UIView animateWithDuration:.5 animations:^{
         _overlayView.alpha = 0;
     }completion:^(BOOL isCompleted){
-        
+        hasOverlay = NO;
     }];
 }
 @end

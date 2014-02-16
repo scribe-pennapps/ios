@@ -13,9 +13,12 @@
 - (void)goToCamera;
 
 @end
-@interface SCSitesViewController : UIViewController
+@interface SCSitesViewController : UIViewController <UITableViewDataSource, UITableViewDelegate> {
+    NSArray *sites;
+}
 
 @property (nonatomic, strong) id <SCSitesViewControllerDelegate> delegate;
+@property (strong, nonatomic) IBOutlet UITableView *tableView;
 
 - (IBAction)goToCamera:(id)sender;
 @end
