@@ -293,7 +293,7 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
     
     if (takePicture) {
         takePicture = NO;
-        /*CVPixelBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+        CVPixelBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
         
         
         CVReturn lock = CVPixelBufferLockBaseAddress(pixelBuffer, 0);
@@ -315,8 +315,8 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
             NSLog(@"bytesPerPixel:%lu", bytesPerPixel);
             if (data != NULL) {
                 
-                for (int y = 0; y < h; y++) {
-                    for (int x = 0; x < w; x++) {
+                for (int y = 0; y < h - 4; y++) {
+                    for (int x = 0; x < w - 4; x++) {
                         unsigned long offset = bytesPerPixel*((w*y)+x);
                         offset +=2;
                         data[offset] = buffer[offset];
@@ -334,36 +334,7 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
             }
             
             
-        }*/
-        CVPixelBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
-        
-        
-        CVReturn lock = CVPixelBufferLockBaseAddress(pixelBuffer, 0);
-        if (lock == kCVReturnSuccess) {
-            unsigned long w = 0;
-            unsigned long h = 0;
-            unsigned long r = 0;
-            unsigned long bytesPerPixel = 0;
-            unsigned char *buffer;
-            //switch
-            h = CVPixelBufferGetWidth(pixelBuffer);
-            w = CVPixelBufferGetHeight(pixelBuffer);
-            r = CVPixelBufferGetBytesPerRow(pixelBuffer);
-            bytesPerPixel = r/h;
-            buffer = [self rotateBuffer:sampleBuffer];
-            UIGraphicsBeginImageContext(CGSizeMake(w, h));
-            CGContextRef c = UIGraphicsGetCurrentContext();
-//            unsigned char* data = CGBitmapContextGetData(c);
-            CGImageRef imgRef = CGBitmapContextCreateImage(c);
-            UIImage *img = [UIImage imageWithCGImage:imgRef];
-            UIGraphicsEndImageContext();
-            UIImageView *v = [[UIImageView alloc] initWithFrame:self.view.bounds];
-            v.image = img;
-            [self.view addSubview:v];
-            UIImageWriteToSavedPhotosAlbum(img, self, @selector(image:finishedSavingWithError:contextInfo:), nil);
-            
         }
-        
     }
     
     if (connection == videoConnection) {

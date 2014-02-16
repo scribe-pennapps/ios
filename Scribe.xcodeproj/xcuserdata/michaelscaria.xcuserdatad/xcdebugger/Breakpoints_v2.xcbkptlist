@@ -10,11 +10,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "Scribe/SCViewController.m"
-            timestampString = "414244560.062914"
+            timestampString = "414245065.374563"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "108"
-            endingLineNumber = "108"
+            startingLineNumber = "106"
+            endingLineNumber = "106"
             landmarkName = "-takePicture"
             landmarkType = "5">
          </BreakpointContent>
