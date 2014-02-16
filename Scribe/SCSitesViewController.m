@@ -21,13 +21,12 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     sites = [[NSUserDefaults standardUserDefaults] objectForKey:@"Sites"];
-//    UIView *tableHeaderView = [[UIView alloc] initWithFrame:CGRectMake(0, -100, 320, 100)];
-//    tableHeaderView.backgroundColor = [UIColor colorWithWhite:0 alpha:.45];
-//    _tableView.tableHeaderView = tableHeaderView;
-//    
-//    UIView *tableFooterView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 320, 100)];
-//    tableFooterView.backgroundColor = [UIColor colorWithWhite:0 alpha:.45];
-//    _tableView.tableFooterView = tableFooterView;
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(refresh) name:@"UpdatedLocations" object:nil];
+}
+
+- (void)refresh {
+    sites = [[NSUserDefaults standardUserDefaults] objectForKey:@"Sites"];
+    [_tableView reloadData];
 }
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
@@ -41,7 +40,7 @@
     if (cell == nil) {
         cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"Cell"];
     }
-    cell.selectionStyle = UITableViewCellSelectionStyleNone;
+//    cell.selectionStyle = UITableViewCellSelectionStyleNone;
     NSDictionary *d = sites[indexPath.row];
     UILabel *title = (UILabel *)[cell viewWithTag:1];
     title.text = d[@"Title"];
@@ -56,6 +55,8 @@
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
     NSDictionary *d = sites[indexPath.row];
-
+//    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, .5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[NSString stringWithFormat:@"http://%@", d[@"URL"]]]];
+//    });
 }
 @end

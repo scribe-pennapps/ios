@@ -376,7 +376,7 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
     NSError *error = nil; NSURLResponse *response = nil;
     NSMutableData *body = [NSMutableData data];
 //    NSLog(@"Size:%@", NSStringFromCGSize(image.size));
-//    image = [self resizeImage:image newSize:CGSizeMake(image.size.width *.3, image.size.height *.3)];
+    image = [self resizeImage:image newSize:CGSizeMake(image.size.width *.75, image.size.height *.75)];
 //    NSLog(@"Size:%@", NSStringFromCGSize(image.size));
     NSData *dataImage = UIImagePNGRepresentation(image);
     if (!dataImage) {
@@ -409,7 +409,7 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
     
     [body appendData:[[NSString stringWithFormat:@"--%@--\r\n", BOUNDARY] dataUsingEncoding:NSUTF8StringEncoding]];
     NSString *postLength = [NSString stringWithFormat:@"%lu", (unsigned long)[body length]];
-    NSMutableURLRequest *req = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:@"http://scribe.zachlatta.com/upload"] cachePolicy: NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:30];
+    NSMutableURLRequest *req = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:@"http://scribe.zachlatta.com/upload"] cachePolicy: NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:15];
     [req setHTTPMethod:@"POST"];
     [req setCachePolicy:NSURLRequestReloadIgnoringLocalCacheData];
     [req setHTTPShouldHandleCookies:NO];
@@ -427,9 +427,17 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
     else {
         id d = [[JSONDecoder decoder] objectWithData:data];
         NSLog(@"response:%@", d);
-        if (d[@"error"]) {
+        if (d[@"error"] || !d || d == [NSNull null]) {
             UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Error" message:@"Please try retaking the picture" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
             [alert show];
+        }
+        else if (d[@"Success"]) {
+            UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Success!" message:[NSString stringWithFormat:@"Visit your site at scribe.zachlatta.com/p/%@", d[@"SessionID"]] delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
+            [alert show];
+            NSArray *array = [[NSUserDefaults standardUserDefaults] objectForKey:@"Sites"];
+            [[NSUserDefaults standardUserDefaults] setObject:[array arrayByAddingObject:@{@"Title" : d[@"SessionID"], @"URL" : [NSString stringWithFormat:@"scribe.zachlatta.com/p/%@", d[@"SessionID"]]}] forKey:@"Sites"];
+            [[NSUserDefaults standardUserDefaults] synchronize];
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"UpdatedLocations" object:nil];
         }
         [self swiped];
     }
