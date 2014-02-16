@@ -14,9 +14,7 @@
 #import <MobileCoreServices/MobileCoreServices.h>
 #import <Accelerate/Accelerate.h>
 
-
-#import "AFNetworking.h"
-//#import "AFHTTPRequestOperation.h"
+#import <AssetsLibrary/AssetsLibrary.h>
 
 #define kCameraViewOffset 60
 #define KSizeOfSquare 75.0f
@@ -355,20 +353,7 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
             buffer = [self rotateBuffer:sampleBuffer];
             UIGraphicsBeginImageContext(CGSizeMake(w, h));
             CGContextRef c = UIGraphicsGetCurrentContext();
-            unsigned char* data = CGBitmapContextGetData(c);
-            if (data != NULL) {
-                for (int y = 0; y < h- 4; y++) {
-                    for (int x = 0; x < w -4; x++) {
-                        unsigned long offset = bytesPerPixel*((w*y)+x);
-                        offset +=2;
-                        data[offset] = buffer[offset];
-                        data[offset + 1] = buffer[offset + 1];
-                        data[offset + 2] = buffer[offset + 2];
-                        data[offset + 3] = buffer[offset + 3];
-                    }
-                }
-            }
-            
+//            unsigned char* data = CGBitmapContextGetData(c);
             CGImageRef imgRef = CGBitmapContextCreateImage(c);
             UIImage *img = [UIImage imageWithCGImage:imgRef];
             UIGraphicsEndImageContext();
@@ -414,7 +399,8 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
         [alert show];
         return;
     }
-    /*NSLog(@"finishedSavingWithError:%@", NSStringFromCGSize(image.size));
+    
+    NSLog(@"finishedSavingWithError:%@", NSStringFromCGSize(image.size));
     
     NSError *error = nil; NSURLResponse *response = nil;
     NSMutableData *body = [NSMutableData data];
@@ -451,7 +437,7 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
     }];
     
     [body appendData:[[NSString stringWithFormat:@"--%@--\r\n", BOUNDARY] dataUsingEncoding:NSUTF8StringEncoding]];
-    NSString *postLength = [NSString stringWithFormat:@"%d", [body length]];
+    NSString *postLength = [NSString stringWithFormat:@"%lu", (unsigned long)[body length]];
     NSMutableURLRequest *req = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:@"http://scribe.zachlatta.com/upload"] cachePolicy: NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:30];
     [req setHTTPMethod:@"POST"];
     [req setCachePolicy:NSURLRequestReloadIgnoringLocalCacheData];
@@ -475,32 +461,7 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
             [alert show];
         }
         [self swiped];
-    }*/
-    
-    NSData *imageData = UIImagePNGRepresentation(image);
-    AFHTTPRequestOperationManager *manager = [AFHTTPRequestOperationManager manager];
-    manager.responseSerializer = [AFHTTPResponseSerializer serializer];
-    [manager POST:@"http://scribe.zachlatta.com/upload" parameters:nil constructingBodyWithBlock:^(id<AFMultipartFormData> formData) {
-        [formData appendPartWithFileData:imageData name:@"file" fileName:@"file.png" mimeType:@"image/png"];
-    } success:^(AFHTTPRequestOperation *operation, id responseObject) {
-        NSString *string = [[NSString alloc] initWithData:responseObject encoding:NSUTF8StringEncoding];
-        NSLog(@"Success: %@", string);
-    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-        NSLog(@"Error: %@", error);
-    }];
-//    NSURL *url = [NSURL URLWithString:@"http://scribe.zachlatta.com/upload"];
-//    AFHTTPClient *httpClient = [[AFHTTPClient alloc] initWithBaseURL:url];
-//    
-//    NSDictionary *params = [NSDictionary dictionaryWithObjectsAndKeys:
-//                            height, @"user[height]",
-//                            weight, @"user[weight]",
-//                            nil];
-//    [httpClient postPath:@"/myobject" parameters:params success:^(AFHTTPRequestOperation *operation, id responseObject) {
-//        NSString *responseStr = [[NSString alloc] initWithData:responseObject encoding:NSUTF8StringEncoding];
-//        NSLog(@"Request Successful, response '%@'", responseStr);
-//    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-//        NSLog(@"[HTTPClient Error]: %@", error.localizedDescription);
-//    }];
+    }
 }
 
 - (UIImage *)resizeImage:(UIImage*)image newSize:(CGSize)newSize {
