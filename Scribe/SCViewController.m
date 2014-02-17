@@ -409,8 +409,7 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
     
     [body appendData:[[NSString stringWithFormat:@"--%@--\r\n", BOUNDARY] dataUsingEncoding:NSUTF8StringEncoding]];
     NSString *postLength = [NSString stringWithFormat:@"%lu", (unsigned long)[body length]];
-//    NSMutableURLRequest *req = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:@"http://scribe.zachlatta.com/upload"] cachePolicy: NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:15];
-    NSMutableURLRequest *req = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:@"http://162.243.114.21/upload"] cachePolicy: NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:15];
+    NSMutableURLRequest *req = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:@"http://scribe.zachlatta.com/upload"] cachePolicy: NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:15];
     [req setHTTPMethod:@"POST"];
     [req setCachePolicy:NSURLRequestReloadIgnoringLocalCacheData];
     [req setHTTPShouldHandleCookies:NO];
@@ -421,17 +420,17 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
     [req setValue:postLength forHTTPHeaderField:@"Content-Length"];
     [req setHTTPBody:body];
     
-    /*dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        NSString *v = @"C50yEGDi";
-        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Success!" message:[NSString stringWithFormat:@"Visit your site at scribe.zachlatta.com/p/%@", v] delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
-            [alert show];
-            NSArray *array = [[NSUserDefaults standardUserDefaults] objectForKey:@"Sites"];
-            [[NSUserDefaults standardUserDefaults] setObject:[array arrayByAddingObject:@{@"Title" : v, @"URL" : [NSString stringWithFormat:@"scribe.zachlatta.com/p/%@", v]}] forKey:@"Sites"];
-            [[NSUserDefaults standardUserDefaults] synchronize];
-            [[NSNotificationCenter defaultCenter] postNotificationName:@"UpdatedLocations" object:nil];
-        [self swiped];
-    });*/
     NSData *data = [NSURLConnection sendSynchronousRequest:req returningResponse:&response error:&error];
+//    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+//        NSString *v = @"C50yEGDi";
+//        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Success!" message:[NSString stringWithFormat:@"Visit your site at scribe.zachlatta.com/p/%@", v] delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
+//            [alert show];
+//            NSArray *array = [[NSUserDefaults standardUserDefaults] objectForKey:@"Sites"];
+//            [[NSUserDefaults standardUserDefaults] setObject:[array arrayByAddingObject:@{@"Title" : v, @"URL" : [NSString stringWithFormat:@"scribe.zachlatta.com/p/%@", v]}] forKey:@"Sites"];
+//            [[NSUserDefaults standardUserDefaults] synchronize];
+//            [[NSNotificationCenter defaultCenter] postNotificationName:@"UpdatedLocations" object:nil];
+//        [self swiped];
+//    });
     if (error) {
         NSLog(@"Error:%@", error.localizedDescription);
     }
@@ -443,11 +442,10 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
             [alert show];
         }
         else if (d[@"Success"]) {
-            UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Success!" message:[NSString stringWithFormat:@"Visit your site at 162.243.114.21/p/%@", d[@"SessionID"]] delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
+            UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Success!" message:[NSString stringWithFormat:@"Visit your site at scribe.zachlatta.com/p/%@", d[@"SessionID"]] delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
             [alert show];
             NSArray *array = [[NSUserDefaults standardUserDefaults] objectForKey:@"Sites"];
-//            [[NSUserDefaults standardUserDefaults] setObject:[array arrayByAddingObject:@{@"Title" : d[@"SessionID"], @"URL" : [NSString stringWithFormat:@"scribe.zachlatta.com/p/%@", d[@"SessionID"]]}] forKey:@"Sites"];
-            [[NSUserDefaults standardUserDefaults] setObject:[array arrayByAddingObject:@{@"Title" : d[@"SessionID"], @"URL" : [NSString stringWithFormat:@"162.243.114.21/p/%@", d[@"SessionID"]]}] forKey:@"Sites"];
+            [[NSUserDefaults standardUserDefaults] setObject:[array arrayByAddingObject:@{@"Title" : d[@"SessionID"], @"URL" : [NSString stringWithFormat:@"scribe.zachlatta.com/p/%@", d[@"SessionID"]]}] forKey:@"Sites"];
             [[NSUserDefaults standardUserDefaults] synchronize];
             [[NSNotificationCenter defaultCenter] postNotificationName:@"UpdatedLocations" object:nil];
         }
